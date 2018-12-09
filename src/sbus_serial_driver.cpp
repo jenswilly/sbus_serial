@@ -24,7 +24,9 @@ namespace sbus_serial
 		serial_port_fd_( -1 ),
 		callback_( nullptr )
 	{
-		setUpSBusSerialPort( port, start_receiver_thread );
+		bool success = setUpSBusSerialPort( port, start_receiver_thread );
+		if( !success )
+			throw std::runtime_error( "Unable to open UART port" );
 	}
 
 	SBusSerialPort::~SBusSerialPort()
