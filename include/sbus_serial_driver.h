@@ -2,13 +2,16 @@
 
 #include <atomic>
 #include <thread>
+#include <functional>
+#include <array>
 
 namespace sbus_serial
 {
 	struct SBusMsg
 	{
 		// Normal 11 bit channels
-		uint16_t channels[ 16 ];
+		std::array<int16_t, 16> channels;
+//		uint16_t channels[ 16 ];
 
 		// Flags
 		bool frame_lost;
@@ -18,25 +21,21 @@ namespace sbus_serial
 	class SBusSerialPort
 	{
 	  public:
+		using SBusCallback = std::function<void( const SBusMsg )>;      // Callback functor/lambda (using std::function allows capturing lambdas)
 
 		SBusSerialPort();
 		SBusSerialPort( const std::string& port, const bool start_receiver_thread );
-		virtual ~SBusSerialPort();
+		~SBusSerialPort();
 
-	  protected:
-
-		bool setUpSBusSerialPort( const std::string& port,
-					  const bool start_receiver_thread );
-
-		bool connectSerialPort( const std::string& port );
-		void disconnectSerialPort();
-
-		bool startReceiverThread();
-		bool stopReceiverThread();
-
-		void handleReceivedSbusMessage( const sbus_serial::SBusMsg& received_sbus_msg );
+		void setCallback( SBusCallback );       // Set callback to be invoked every time an SBUS packet is received
 
 	  private:
+
+		bool setUpSBusSerialPort( const std::string& port,  const bool start_receiver_thread );
+		bool connectSerialPort( const std::string& port );
+		void disconnectSerialPort();
+		bool startReceiverThread();
+		bool stopReceiverThread();
 
 		static constexpr int kSbusFrameLength_ = 25;
 		static constexpr uint8_t kSbusHeaderByte_ = 0x0F;
@@ -49,7 +48,7 @@ namespace sbus_serial
 
 		std::thread receiver_thread_;
 		std::atomic_bool receiver_thread_should_exit_;
-
+		SBusCallback callback_;
 		int serial_port_fd_;
 	};
 

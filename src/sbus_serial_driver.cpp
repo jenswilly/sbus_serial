@@ -18,9 +18,11 @@ namespace sbus_serial
 		receiver_thread_(), receiver_thread_should_exit_( false ), serial_port_fd_( -1 )
 	{}
 
-	SBusSerialPort::SBusSerialPort( const std::string& port,
-					const bool start_receiver_thread ) :
-		receiver_thread_(), receiver_thread_should_exit_( false ), serial_port_fd_( -1 )
+	SBusSerialPort::SBusSerialPort( const std::string& port, const bool start_receiver_thread ) :
+		receiver_thread_(),
+		receiver_thread_should_exit_( false ),
+		serial_port_fd_( -1 ),
+		callback_( nullptr )
 	{
 		setUpSBusSerialPort( port, start_receiver_thread );
 	}
@@ -28,6 +30,11 @@ namespace sbus_serial
 	SBusSerialPort::~SBusSerialPort()
 	{
 		disconnectSerialPort();
+	}
+
+	void SBusSerialPort::setCallback( SBusCallback callback )
+	{
+		callback_ = callback;
 	}
 
 	bool SBusSerialPort::setUpSBusSerialPort( const std::string& port,
@@ -256,7 +263,8 @@ namespace sbus_serial
 						// By running the loop above for as long as possible before handling
 						// the received sbus message we achieve to only process the latest one
 						const SBusMsg received_sbus_msg = parseSbusMessage( sbus_msg_bytes );
-						handleReceivedSbusMessage( received_sbus_msg );
+						if( callback_ != nullptr )
+							callback_( received_sbus_msg );
 					}
 				}
 			}
@@ -322,15 +330,4 @@ namespace sbus_serial
 
 		return sbus_msg;
 	}
-
-	void SBusSerialPort::handleReceivedSbusMessage( const SBusMsg& received_sbus_msg )
-	{
-		printf( "Ch 1: %d, FS: %d\n", received_sbus_msg.channels[ 0 ], received_sbus_msg.failsafe );
-	}
-
 } // namespace sbus_serial
-
-main()
-{
-	;
-}
