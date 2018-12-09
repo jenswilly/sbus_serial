@@ -12,12 +12,14 @@ int main( int argc, char **argv )
 
 	// Read/set parameters
 	std::string frame_id;
+	std::string port;
 	int refresh_rate_hr;
 	int rxMinValue;
 	int rxMaxValue;
 	int outMinValue;
 	int outMaxValue;
 	param_nh.param( "frame_id", frame_id, std::string( "base" ));
+	param_nh.param( "port", frame_id, std::string( "/dev/ttyTHS2" ));
 	param_nh.param( "refresh_rate_hz", refresh_rate_hr, 5 );
 	param_nh.param( "rxMinValue", rxMinValue, 172 );
 	param_nh.param( "rxMaxValue", rxMaxValue, 1811 );
@@ -30,7 +32,7 @@ int main( int argc, char **argv )
 	// Initialize SBUS port (using pointer to have only the initialization in the try-catch block)
 	sbus_serial::SBusSerialPort *sbusPort;
 	try {
-		sbusPort = new sbus_serial::SBusSerialPort( "/dev/ttyTHS2", true );     // /dev/ttyTHS2 is UART on J17
+		sbusPort = new sbus_serial::SBusSerialPort( port, true );     // /dev/ttyTHS2 is UART on J17
 	}
 	catch( ... ) {
 		// TODO: add error message in exception and report
