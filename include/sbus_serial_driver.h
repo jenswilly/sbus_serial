@@ -34,7 +34,7 @@ namespace sbus_serial
 		bool startReceiverThread();
 		bool stopReceiverThread();
 
-		void handleReceivedSbusMessage( const sbus_bridge::SBusMsg& received_sbus_msg );
+		void handleReceivedSbusMessage( const sbus_serial::SBusMsg& received_sbus_msg );
 
 	  private:
 
