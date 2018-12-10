@@ -68,7 +68,7 @@ namespace sbus_serial
 
 		if( serial_port_fd_ == -1 )
 		{
-			printf( "Could not open serial port %s\n", port.c_str() );
+			printf( "Could not open serial port: '%s'\n", port.c_str() );
 			return false;
 		}
 
