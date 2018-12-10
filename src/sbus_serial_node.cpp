@@ -3,6 +3,7 @@
 #include <sbus_serial_driver.h>
 #include <sbus_serial/Sbus.h>
 #include <algorithm>
+#include <boost/algorithm/clamp.hpp>
 
 int main( int argc, char **argv )
 {
@@ -54,13 +55,14 @@ int main( int argc, char **argv )
 		sbus.header.stamp = ros::Time::now();
 
 		// Assign raw channels
-		std::transform( sbusMsg.channels.begin(), sbusMsg.channels.end(), sbus.rawChannels.begin(), [] (uint16_t rawChannel) {
-					return rawChannel;
+		std::transform( sbusMsg.channels.begin(), sbusMsg.channels.end(), sbus.rawChannels.begin(), [&]( uint16_t rawChannel ) {
+					return boost::algorithm::clamp( rawChannel, rxMinValue, rxMaxValue );   // Clamp to min/max raw values
 				} );
 
 		// Map to min/max values
 		std::transform( sbusMsg.channels.begin(), sbusMsg.channels.end(), sbus.mappedChannels.begin(), [&]( uint16_t rawChannel ) {
-					return (rawChannel - rxMinValue) / rawSpan * outSpan + outMinValue;
+					int16_t mappedValue = (rawChannel - rxMinValue) / rawSpan * outSpan + outMinValue;
+					return boost::algorithm::clamp( mappedValue, outMinValue, outMaxValue );        // Clamp to min/max output values
 				} );
 	};
 	sbusPort->setCallback( callback );
