@@ -20,7 +20,7 @@ int main( int argc, char **argv )
 	int outMinValue;
 	int outMaxValue;
 	param_nh.param( "frame_id", frame_id, std::string( "base" ));   // frame_id isn't really used for SBUS messages
-	param_nh.param( "port", frame_id, std::string( "/dev/ttyTHS2" ));     // /dev/ttyTHS2 is UART on J17
+	param_nh.param( "port", port, std::string( "/dev/ttyTHS2" ));     // /dev/ttyTHS2 is UART on J17
 	param_nh.param( "refresh_rate_hz", refresh_rate_hr, 5 );
 	param_nh.param( "rxMinValue", rxMinValue, 172 );
 	param_nh.param( "rxMaxValue", rxMaxValue, 1811 );
