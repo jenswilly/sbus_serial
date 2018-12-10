@@ -9,9 +9,8 @@ namespace sbus_serial
 {
 	struct SBusMsg
 	{
-		// Normal 11 bit channels
-		std::array<int16_t, 16> channels;
-//		uint16_t channels[ 16 ];
+		// Raw 11 bit channels
+		std::array<uint16_t, 16> channels;
 
 		// Flags
 		bool frame_lost;

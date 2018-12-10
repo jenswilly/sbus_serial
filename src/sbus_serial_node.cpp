@@ -19,8 +19,8 @@ int main( int argc, char **argv )
 	int rxMaxValue;
 	int outMinValue;
 	int outMaxValue;
-	param_nh.param( "frame_id", frame_id, std::string( "base" ));
-	param_nh.param( "port", frame_id, std::string( "/dev/ttyTHS2" ));
+	param_nh.param( "frame_id", frame_id, std::string( "base" ));   // frame_id isn't really used for SBUS messages
+	param_nh.param( "port", frame_id, std::string( "/dev/ttyTHS2" ));     // /dev/ttyTHS2 is UART on J17
 	param_nh.param( "refresh_rate_hz", refresh_rate_hr, 5 );
 	param_nh.param( "rxMinValue", rxMinValue, 172 );
 	param_nh.param( "rxMaxValue", rxMaxValue, 1811 );
@@ -31,13 +31,13 @@ int main( int argc, char **argv )
 	float rawSpan = static_cast<float>(rxMaxValue-rxMinValue);
 	float outSpan = static_cast<float>(outMaxValue-outMinValue);
 
-	ros::Publisher pub = nh.advertise<sbus_serial::Sbus>( "sbus", 10 );
+	ros::Publisher pub = nh.advertise<sbus_serial::Sbus>( "sbus", 100 );
 	ros::Rate loop_rate( refresh_rate_hr );
 
 	// Initialize SBUS port (using pointer to have only the initialization in the try-catch block)
 	sbus_serial::SBusSerialPort *sbusPort;
 	try {
-		sbusPort = new sbus_serial::SBusSerialPort( port, true );     // /dev/ttyTHS2 is UART on J17
+		sbusPort = new sbus_serial::SBusSerialPort( port, true );
 	}
 	catch( ... ) {
 		// TODO: add error message in exception and report
@@ -82,5 +82,6 @@ int main( int argc, char **argv )
 		loop_rate.sleep();
 	}
 
+	delete sbusPort;        // Cleanup
 	return 0;
 }
