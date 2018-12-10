@@ -26,6 +26,10 @@ int main( int argc, char **argv )
 	param_nh.param( "outMinValue", outMinValue, 0 );
 	param_nh.param( "outMaxValue", outMaxValue, 255 );
 
+	// Used for mapping raw values
+	float rawSpan = static_cast<float>(rxMaxValue-rxMinValue);
+	float outSpan = static_cast<float>(outMaxValue-outMinValue);
+
 	ros::Publisher pub = nh.advertise<sbus_serial::Sbus>( "sbus", 10 );
 	ros::Rate loop_rate( refresh_rate_hr );
 
@@ -47,8 +51,6 @@ int main( int argc, char **argv )
 
 	// Callback (auto-capture by reference)
 	auto callback = [&]( const sbus_serial::SBusMsg sbusMsg ) {
-		printf( "Ch 1: %d", sbusMsg.channels[ 0 ] );
-
 		sbus.header.stamp = ros::Time::now();
 
 		// Assign raw channels
@@ -57,8 +59,8 @@ int main( int argc, char **argv )
 				} );
 
 		// Map to min/max values
-		std::transform( sbusMsg.channels.begin(), sbusMsg.channels.end(), sbus.mappedChannels.begin(), [] (uint16_t rawChannel) {
-					return rawChannel + 1;
+		std::transform( sbusMsg.channels.begin(), sbusMsg.channels.end(), sbus.mappedChannels.begin(), [&]( uint16_t rawChannel ) {
+					return (rawChannel - rxMinValue) / rawSpan * outSpan + outMinValue;
 				} );
 	};
 	sbusPort->setCallback( callback );
