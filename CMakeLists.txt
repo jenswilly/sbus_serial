@@ -90,3 +90,7 @@ add_dependencies(
 	${catkin_EXPORTED_TARGETS}
 )
 
+add_executable( sbus_calibrate
+	src/sbus_serial_driver.cpp
+	src/sbus_calibrate.cpp )
+target_link_libraries( sbus_calibrate pthread ${catkin_LIBRARIES} )
