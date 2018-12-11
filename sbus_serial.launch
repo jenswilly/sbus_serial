@@ -7,5 +7,6 @@
 		<param name="rxMaxValue" value="1811" />
 		<param name="outMinValue" value="0" />
 		<param name="outMaxValue" value="1000" />
+		<param name="silentOnFailsafe" value="true" />
 	</node>
 </launch>

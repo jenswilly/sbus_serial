@@ -19,6 +19,7 @@ int main( int argc, char **argv )
 	int rxMaxValue;
 	int outMinValue;
 	int outMaxValue;
+	bool silentOnFailsafe;
 	param_nh.param( "frame_id", frame_id, std::string( "base" ));   // frame_id isn't really used for SBUS messages
 	param_nh.param( "port", port, std::string( "/dev/ttyTHS2" ));     // /dev/ttyTHS2 is UART on J17
 	param_nh.param( "refresh_rate_hz", refresh_rate_hr, 5 );
@@ -26,6 +27,7 @@ int main( int argc, char **argv )
 	param_nh.param( "rxMaxValue", rxMaxValue, 1811 );
 	param_nh.param( "outMinValue", outMinValue, 0 );
 	param_nh.param( "outMaxValue", outMaxValue, 255 );
+	param_nh.param( "silentOnFailsafe", silentOnFailsafe, false );
 
 	// Used for mapping raw values
 	float rawSpan = static_cast<float>(rxMaxValue-rxMinValue);
@@ -52,6 +54,10 @@ int main( int argc, char **argv )
 
 	// Callback (auto-capture by reference)
 	auto callback = [&]( const sbus_serial::SBusMsg sbusMsg ) {
+		// First check if we should be silent on failsafe and failsafe is set. If so, do nothing
+		if( silentOnFailsafe && sbusMsg.failsafe )
+			return;
+
 		sbus.header.stamp = ros::Time::now();
 		sbus.frame_lost = sbusMsg.frame_lost;
 		sbus.failsafe = sbusMsg.failsafe;
