@@ -12,7 +12,6 @@ int main( int argc, char **argv )
 	ros::NodeHandle param_nh( "~" );
 
 	// Read/set parameters
-	std::string frame_id;
 	std::string port;
 	int refresh_rate_hr;
 	int rxMinValue;
@@ -23,7 +22,6 @@ int main( int argc, char **argv )
 	int enableChannelNum;
 	double enableChannelProportionalMin;
 	double enableChannelProportionalMax;
-	param_nh.param( "frame_id", frame_id, std::string( "base" ));   // frame_id isn't really used for SBUS messages
 	param_nh.param( "port", port, std::string( "/dev/ttyTHS2" ));     // /dev/ttyTHS2 is UART on J17
 	param_nh.param( "refresh_rate_hz", refresh_rate_hr, 5 );
 	param_nh.param( "rxMinValue", rxMinValue, 172 );
@@ -56,7 +54,6 @@ int main( int argc, char **argv )
 
 	// Create Sbus message instance and set invariant properties. Other properties will be set in the callback lambda
 	sbus_serial::Sbus sbus;
-	sbus.header.frame_id = frame_id;
 	sbus.header.stamp = ros::Time( 0 );
 
 	// Callback (auto-capture by reference)

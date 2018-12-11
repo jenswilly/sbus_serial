@@ -1,6 +1,5 @@
 <launch>
 	<node pkg="sbus_serial" type="sbus_serial_node" name="sbus_node">
-		<param name="frame_id" value="base" />
 		<param name="port" value="/dev/ttyTHS2" />
 		<param name="refresh_rate_hz" value="5" />
 		<param name="rxMinValue" value="172" />
