@@ -53,6 +53,8 @@ int main( int argc, char **argv )
 	// Callback (auto-capture by reference)
 	auto callback = [&]( const sbus_serial::SBusMsg sbusMsg ) {
 		sbus.header.stamp = ros::Time::now();
+		sbus.frame_lost = sbusMsg.frame_lost;
+		sbus.failsafe = sbusMsg.failsafe;
 
 		// Assign raw channels
 		std::transform( sbusMsg.channels.begin(), sbusMsg.channels.end(), sbus.rawChannels.begin(), [&]( uint16_t rawChannel ) {
