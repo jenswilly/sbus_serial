@@ -8,5 +8,20 @@
 		<param name="outMinValue" value="0" />
 		<param name="outMaxValue" value="1000" />
 		<param name="silentOnFailsafe" value="true" />
+
+		<!-- To only publish messages when a specific channel is within a certain range, use the following three parameters -->
+		<!--
+		The enableChannelNum is the channel number to check. Note, this is the channel number, not the array index. So channel 1 is "1" and not "0".
+		If enableChannelNum is set to -1 or 0 or higher than 16, no check is performed.
+		Set enableChannelProportionalMin and enableChannelProportionalMax to the "proportional values" within which publishing is enabled.
+		Example: to publish only if channel 5 is above 50%:
+			<param name="enableChannelNum" value="5" />
+			<param name="enableChannelProportionalMin" type="double" value="0.5" />
+			<param name="enableChannelProportionalMax" type="double" value="1.0" />
+		-->
+		<param name="enableChannelNum" value="-1" />
+		<param name="enableChannelProportionalMin" type="double" value="0.0" />
+		<param name="enableChannelProportionalMax" type="double" value="0.0" />
+
 	</node>
 </launch>
