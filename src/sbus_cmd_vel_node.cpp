@@ -43,13 +43,13 @@ void sbusCallback( const sbus_serial::Sbus::ConstPtr& msg )
 {
 	geometry_msgs::Twist twist;
 
-	// Channel 1 (right stick horizontal): turn left/right
-	double fwdSpeed = maxSpeed * (msg->mappedChannels[ 0 ] - sbusMinValue) / sbusRange;
-	twist.linear.x = fwdSpeed;
-
-	// Channel 2 (right stick vertical): forward/backward
-	double turn = maxTurn * (msg->mappedChannels[ 1 ] - sbusMinValue) / sbusRange;
+	// Channel 1 (right stick vertical): forward/backward
+	double turn = maxTurn * static_cast<double>(msg->mappedChannels[ 0 ]) / 100.0;
 	twist.angular.z = turn;
+
+	// Channel 2 (right stick horizontal): turn left/right
+	double fwdSpeed = maxSpeed * static_cast<double>(msg->mappedChannels[ 1 ]) / 100.0;
+	twist.linear.x = fwdSpeed;
 
 	cmdVelPublisher.publish( twist );
 }
