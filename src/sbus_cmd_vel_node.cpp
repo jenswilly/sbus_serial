@@ -20,28 +20,51 @@
 * THE SOFTWARE.
 *
 * SBUS -> cmd_vel node
+*
 * Subscribes to:
-*	/sbus
+*	/sbus (Sbus)
 * Publishes:
-*	/output/sbus/cmd_vel
+*	/output/sbus/cmd_vel (Twist)
 */
 
 #include "ros/ros.h"
-#include "std_msgs/String.h"
+#include <sbus_serial/Sbus.h>
+#include <geometry_msgs/Twist.h>
 
-void chatterCallback( const std_msgs::String::ConstPtr& msg )
+// Publisher and parameters are in global scope so callback function can use them
+ros::Publisher *cmdVelPublisher;
+int sbusMinValue;
+int sbusMaxValue;
+double maxSpeed;
+
+void sbusCallback( const sbus_serial::Sbus::ConstPtr& msg )
 {
-	ROS_INFO( "I heard: [%s]", msg->data.c_str());
+	// Channel 1 (right stick horizontal): turn left/right
+
+	// Channel 2 (right stick vertical): forward/backward
+
 }
 
 int main( int argc, char **argv )
 {
 	ros::init( argc, argv, "sbus_cmd_vel_node" );
 	ros::NodeHandle nh;
+	ros::NodeHandle param_nh( "~" );
 
-	ros::Subscriber sub = nh.subscribe( "chatter", 1000, chatterCallback );
+	// Read/set parameters
+	param_nh.param( "sbusMinValue", sbusMinValue, -1 );
+	param_nh.param( "sbusMaxValue", sbusMaxValue, -1 );
+	param_nh.param( "maxSpeed", maxSpeed, -1 );
+
+	// All parameters _must_ be explicitly specified
+	if( sbusMaxValue == sbusMinValue && maxSpeed == 1 ) {
+		ROS_ERROR( "Config error: sbusMinValue, sbusMaxValue and maxSpeed parameters must be specified!" );
+		return 1;
+	}
+
+	ros::Subscriber sbusSubscriber = nh.subscribe( "/sbus", 1, sbusCallback );
+	cmdVelPublisher = nh.advertise<geometry_msgs::Twist>( "/output/sbus/cmd_vel", 1 );
 
 	ros::spin();
-
 	return 0;
 }

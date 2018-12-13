@@ -8,6 +8,7 @@ add_compile_options(-std=c++11)
 find_package(catkin REQUIRED COMPONENTS
 	roscpp
     std_msgs
+    geometry_msgs
     message_generation
 )
 
@@ -107,3 +108,8 @@ add_executable( sbus_calibrate
 	src/sbus_serial_driver.cpp
 	src/sbus_calibrate.cpp )
 target_link_libraries( sbus_calibrate pthread ${catkin_LIBRARIES} )
+add_dependencies(
+	${PROJECT_NAME}_node
+	${${PROJECT_NAME}_EXPORTED_TARGETS}
+	${catkin_EXPORTED_TARGETS}
+)
