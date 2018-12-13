@@ -35,9 +35,9 @@
 ros::Publisher cmdVelPublisher;
 int sbusMinValue;
 int sbusMaxValue;
-int sbusRange;
+int sbusRange;          // Calculated when reading min/max
 double maxSpeed;        // m/sec
-double maxTurn; // radians/sec
+double maxTurn;         // radians/sec
 
 void sbusCallback( const sbus_serial::Sbus::ConstPtr& msg )
 {
