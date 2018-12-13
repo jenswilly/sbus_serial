@@ -79,6 +79,7 @@ include_directories(
 	${catkin_INCLUDE_DIRS}
 )
 
+# sbus_node
 add_executable( ${PROJECT_NAME}_node
 	src/sbus_serial_driver.cpp
 	src/sbus_serial_node.cpp )
@@ -90,6 +91,18 @@ add_dependencies(
 	${catkin_EXPORTED_TARGETS}
 )
 
+# sbus_cmd_vel_node
+add_executable( sbus_cmd_vel_node
+	src/sbus_serial_driver.cpp
+	src/sbus_serial_node.cpp )
+target_link_libraries( sbus_cmd_vel_node ${catkin_LIBRARIES} )
+add_dependencies(
+	sbus_cmd_vel_node
+	${${PROJECT_NAME}_EXPORTED_TARGETS}
+	${catkin_EXPORTED_TARGETS}
+)
+
+# sbus_calibrate test app (not ROS node)
 add_executable( sbus_calibrate
 	src/sbus_serial_driver.cpp
 	src/sbus_calibrate.cpp )
