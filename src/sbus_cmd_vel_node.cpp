@@ -32,17 +32,26 @@
 #include <geometry_msgs/Twist.h>
 
 // Publisher and parameters are in global scope so callback function can use them
-ros::Publisher *cmdVelPublisher;
+ros::Publisher cmdVelPublisher;
 int sbusMinValue;
 int sbusMaxValue;
-double maxSpeed;
+int sbusRange;
+double maxSpeed;        // m/sec
+double maxTurn; // radians/sec
 
 void sbusCallback( const sbus_serial::Sbus::ConstPtr& msg )
 {
+	geometry_msgs::Twist twist;
+
 	// Channel 1 (right stick horizontal): turn left/right
+	double fwdSpeed = maxSpeed * (msg->mappedChannels[ 0 ] - sbusMinValue) / sbusRange;
+	twist.linear.x = fwdSpeed;
 
 	// Channel 2 (right stick vertical): forward/backward
+	double turn = maxTurn * (msg->mappedChannels[ 1 ] - sbusMinValue) / sbusRange;
+	twist.angular.z = turn;
 
+	cmdVelPublisher.publish( twist );
 }
 
 int main( int argc, char **argv )
@@ -52,19 +61,23 @@ int main( int argc, char **argv )
 	ros::NodeHandle param_nh( "~" );
 
 	// Read/set parameters
-	param_nh.param( "sbusMinValue", sbusMinValue, -1 );
-	param_nh.param( "sbusMaxValue", sbusMaxValue, -1 );
-	param_nh.param( "maxSpeed", maxSpeed, -1 );
+	param_nh.param<int>( "sbusMinValue", sbusMinValue, -1 );
+	param_nh.param<int>( "sbusMaxValue", sbusMaxValue, -1 );
+	param_nh.param<double>( "maxSpeed", maxSpeed, -1 );
+	param_nh.param<double>( "maxTurn", maxTurn, -1 );
 
 	// All parameters _must_ be explicitly specified
-	if( sbusMaxValue == sbusMinValue && maxSpeed == 1 ) {
+	if( sbusMaxValue == sbusMinValue && maxSpeed == -1 ) {
 		ROS_ERROR( "Config error: sbusMinValue, sbusMaxValue and maxSpeed parameters must be specified!" );
 		return 1;
 	}
 
+	sbusRange = sbusMaxValue - sbusMinValue;
+
 	ros::Subscriber sbusSubscriber = nh.subscribe( "/sbus", 1, sbusCallback );
 	cmdVelPublisher = nh.advertise<geometry_msgs::Twist>( "/output/sbus/cmd_vel", 1 );
 
+	ROS_INFO( "%s started: min/max input = %d/%d, max speed = %.2f m/s, max turn rate = %.2f radians/s", ros::this_node::getName().c_str(), sbusMinValue, sbusMaxValue, maxSpeed, maxTurn );
 	ros::spin();
 	return 0;
 }
