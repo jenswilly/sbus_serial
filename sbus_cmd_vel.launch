@@ -27,5 +27,6 @@
 		<param name="sbusMinValue" value="-100" />
 		<param name="sbusMaxValue" value="100" />
 		<param name="maxSpeed" value="2.0" />
+		<param nbame="maxTuen" value="3.1416" />
 	</node>
 </launch>
