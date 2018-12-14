@@ -31,6 +31,9 @@
 #include <sbus_serial/Sbus.h>
 #include <geometry_msgs/Twist.h>
 
+#define FORWARD_CHANNEL_INDX 1       // Channel 2 (elevator)
+#define TURN_CHANNEL_INDX 0          // Channel 1 (ailerons)
+
 // Publisher and parameters are in global scope so callback function can use them
 ros::Publisher cmdVelPublisher;
 int sbusMinValue;
@@ -41,15 +44,16 @@ double maxTurn;         // radians/sec
 
 void sbusCallback( const sbus_serial::Sbus::ConstPtr& msg )
 {
+	double proportional;
 	geometry_msgs::Twist twist;
 
-	// Channel 1 (right stick vertical): forward/backward
-	double turn = maxTurn * static_cast<double>(msg->mappedChannels[ 0 ]) / 100.0;
-	twist.angular.z = turn;
-
-	// Channel 2 (right stick horizontal): turn left/right
-	double fwdSpeed = maxSpeed * static_cast<double>(msg->mappedChannels[ 1 ]) / 100.0;
+	proportional = static_cast<double>(msg->mappedChannels[ FORWARD_CHANNEL_INDX ] - sbusMinValue) / sbusRange;
+	double fwdSpeed = maxSpeed * (proportional * 2 - 1.0);
 	twist.linear.x = fwdSpeed;
+
+	proportional = static_cast<double>(msg->mappedChannels[ TURN_CHANNEL_INDX ] - sbusMinValue) / sbusRange;
+	double turn = maxTurn * (proportional * 2 - 1.0);
+	twist.angular.z = turn;
 
 	cmdVelPublisher.publish( twist );
 }
