@@ -1,5 +1,5 @@
 <launch>
-	<remap from="outut/sbus/cmd_vel" to="cmd_vel_mux/input/teleop" />
+	<remap from="/output/sbus/cmd_vel" to="/cmd_vel_mux/input/teleop" />
 
 	<node pkg="sbus_serial" type="sbus_serial_node" name="sbus_node">
 		<param name="port" value="/dev/ttyTHS2" />
