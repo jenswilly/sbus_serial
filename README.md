@@ -6,4 +6,4 @@ This project is a ROS node for parsing SBUS serial data for remote control (tele
 
 SBUS is a serial protocol for RC receivers where the values of up to 16 channels are sent over one serial channel.
 
-Read the [Wiki](wiki) which contains all the information you need to use this package.
+Read the [Wiki](https://github.com/jenswilly/sbus_serial/wiki) which contains all the information you need to use this package.
