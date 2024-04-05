@@ -18,7 +18,9 @@ The package contains the following executables:
 
 ## ROS version
 
-The code in this branch is written for [ROS 2 Humble Hawksbill](https://docs.ros.org/en/humble/Releases/Release-Humble-Hawksbill.html)
+The code in this branch is written for [ROS 2 Humble Hawksbill](https://docs.ros.org/en/humble/Releases/Release-Humble-Hawksbill.html).
+
+The [ros1](https://github.com/jenswilly/sbus_serial/tree/ros1) branch contains the old code for ROS 1.
 
 ## Compiling
 
