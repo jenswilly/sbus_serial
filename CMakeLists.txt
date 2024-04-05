@@ -1,62 +1,84 @@
-cmake_minimum_required(VERSION 2.8.3)
+cmake_minimum_required(VERSION 3.8)
 project(sbus_serial)
 
-## Compile as C++11, supported in ROS Kinetic and newer
-add_compile_options(-std=c++11)
+# C++14
+if(NOT CMAKE_CXX_STANDARD)
+  set(CMAKE_CXX_STANDARD 14)
+endif()
 
-## Find catkin macros and libraries
-find_package(catkin REQUIRED COMPONENTS
-	roscpp
-    std_msgs
-    geometry_msgs
-    message_generation
+if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+  add_compile_options(-Wall -Wextra -Wpedantic)
+endif()
+
+include_directories(include)
+
+# Find and dependencies for all node executables
+find_package(ament_cmake REQUIRED)
+find_package(rclcpp REQUIRED)
+find_package(std_msgs REQUIRED)
+find_package(geometry_msgs REQUIRED)
+find_package(sbus_interfaces REQUIRED)
+
+set(dependencies "rclcpp" "std_msgs" "geometry_msgs" "sbus_interfaces")
+
+# Add executable and link dependencies
+add_executable(sbus_serial src/sbus_serial_node.cpp src/sbus_serial_driver.cpp)
+ament_target_dependencies(sbus_serial ${dependencies})
+
+add_executable(sbus_test_publisher src/sbus_test_publisher.cpp)
+ament_target_dependencies(sbus_test_publisher ${dependencies})
+
+add_executable(sbus_cmd_vel src/sbus_cmd_vel_node.cpp)
+ament_target_dependencies(sbus_cmd_vel ${dependencies})
+
+# Separate executable for the calibration
+add_executable(sbus_calibrate src/sbus_calibrate.cpp src/sbus_serial_driver.cpp)
+
+# Install executables in lib
+install(
+	TARGETS 
+		sbus_serial 
+		sbus_test_publisher
+		sbus_cmd_vel
+	DESTINATION lib/${PROJECT_NAME}
 )
 
-## System dependencies are found with CMake's conventions
-# find_package(Boost REQUIRED COMPONENTS system)
+# Install launch files.
+install(DIRECTORY
+  launch
+  DESTINATION share/${PROJECT_NAME}/
+)
 
+# Install calibration binary in share
+install(
+	TARGETS sbus_calibrate
+	DESTINATION share/${PROJECT_NAME}
+)
 
-## Uncomment this if the package has a setup.py. This macro ensures
-## modules and global scripts declared therein get installed
-## See http://ros.org/doc/api/catkin/html/user_guide/setup_dot_py.html
-# catkin_python_setup()
+ament_package()
 
-################################################
-## Declare ROS messages, services and actions ##
-################################################
+# --- Old, unconverted stuff below ---
 
-## To declare and build messages, services or actions from within this
-## package, follow these steps:
-## * Let MSG_DEP_SET be the set of packages whose message types you use in
-##   your messages/services/actions (e.g. std_msgs, actionlib_msgs, ...).
-## * In the file package.xml:
-##   * add a build_depend tag for "message_generation"
-##   * add a build_depend and a exec_depend tag for each package in MSG_DEP_SET
-##   * If MSG_DEP_SET isn't empty the following dependency has been pulled in
-##     but can be declared for certainty nonetheless:
-##     * add a exec_depend tag for "message_runtime"
-## * In this file (CMakeLists.txt):
-##   * add "message_generation" and every package in MSG_DEP_SET to
-##     find_package(catkin REQUIRED COMPONENTS ...)
-##   * add "message_runtime" and every package in MSG_DEP_SET to
-##     catkin_package(CATKIN_DEPENDS ...)
-##   * uncomment the add_*_files sections below as needed
-##     and list every .msg/.srv/.action file to be processed
-##   * uncomment the generate_messages entry below
-##   * add every package in MSG_DEP_SET to generate_messages(DEPENDENCIES ...)
+## Find catkin macros and libraries
+#find_package(catkin REQUIRED COMPONENTS
+#	roscpp
+#    std_msgs
+#    geometry_msgs
+#    message_generation
+#)
 
 
 # Generate messages in the 'msg' folder
-add_message_files(
-   FILES
-   Sbus.msg
-)
+#add_message_files(
+#   FILES
+#   Sbus.msg
+#)
 
 # Generate added messages and services with any dependencies listed here
-generate_messages(
-  DEPENDENCIES
-  std_msgs
-)
+#generate_messages(
+#  DEPENDENCIES
+#  std_msgs
+#)
 
 
 ###################################
@@ -68,46 +90,46 @@ generate_messages(
 ## LIBRARIES: libraries you create in this project that dependent projects also need
 ## CATKIN_DEPENDS: catkin_packages dependent projects also need
 ## DEPENDS: system dependencies of this project that dependent projects also need
-catkin_package(
+#catkin_package(
 #  INCLUDE_DIRS include
 #  LIBRARIES sbus_serial
-	CATKIN_DEPENDS roscpp std_msgs
+#	CATKIN_DEPENDS roscpp std_msgs
 #	DEPENDS pthread
-)
+#)
 
-include_directories(
-	include
-	${catkin_INCLUDE_DIRS}
-)
+#include_directories(
+#	include
+#	${catkin_INCLUDE_DIRS}
+#)
 
-# sbus_node
-add_executable( ${PROJECT_NAME}_node
-	src/sbus_serial_driver.cpp
-	src/sbus_serial_node.cpp )
-set_target_properties( ${PROJECT_NAME}_node PROPERTIES OUTPUT_NAME sbus_serial_node PREFIX "")
-target_link_libraries( ${PROJECT_NAME}_node pthread ${catkin_LIBRARIES} )
-add_dependencies(
-	${PROJECT_NAME}_node
-	${${PROJECT_NAME}_EXPORTED_TARGETS}
-	${catkin_EXPORTED_TARGETS}
-)
+# # sbus_node
+# add_executable( ${PROJECT_NAME}_node
+# 	src/sbus_serial_driver.cpp
+# 	src/sbus_serial_node.cpp )
+# set_target_properties( ${PROJECT_NAME}_node PROPERTIES OUTPUT_NAME sbus_serial_node PREFIX "")
+# target_link_libraries( ${PROJECT_NAME}_node pthread ${catkin_LIBRARIES} )
+# add_dependencies(
+# 	${PROJECT_NAME}_node
+# 	${${PROJECT_NAME}_EXPORTED_TARGETS}
+# 	${catkin_EXPORTED_TARGETS}
+# )
 
-# sbus_cmd_vel_node
-add_executable( sbus_cmd_vel_node src/sbus_cmd_vel_node.cpp )
-target_link_libraries( sbus_cmd_vel_node ${catkin_LIBRARIES} )
-add_dependencies(
-	sbus_cmd_vel_node
-	${${PROJECT_NAME}_EXPORTED_TARGETS}
-	${catkin_EXPORTED_TARGETS}
-)
+# # sbus_cmd_vel_node
+# add_executable( sbus_cmd_vel_node src/sbus_cmd_vel_node.cpp )
+# target_link_libraries( sbus_cmd_vel_node ${catkin_LIBRARIES} )
+# add_dependencies(
+# 	sbus_cmd_vel_node
+# 	${${PROJECT_NAME}_EXPORTED_TARGETS}
+# 	${catkin_EXPORTED_TARGETS}
+# )
 
-# sbus_calibrate test app (not ROS node)
-add_executable( sbus_calibrate
-	src/sbus_serial_driver.cpp
-	src/sbus_calibrate.cpp )
-target_link_libraries( sbus_calibrate pthread ${catkin_LIBRARIES} )
-add_dependencies(
-	${PROJECT_NAME}_node
-	${${PROJECT_NAME}_EXPORTED_TARGETS}
-	${catkin_EXPORTED_TARGETS}
-)
+# # sbus_calibrate test app (not ROS node)
+# add_executable( sbus_calibrate
+# 	src/sbus_serial_driver.cpp
+# 	src/sbus_calibrate.cpp )
+# target_link_libraries( sbus_calibrate pthread ${catkin_LIBRARIES} )
+# add_dependencies(
+# 	${PROJECT_NAME}_node
+# 	${${PROJECT_NAME}_EXPORTED_TARGETS}
+# 	${catkin_EXPORTED_TARGETS}
+# )
