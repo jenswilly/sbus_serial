@@ -1,5 +1,5 @@
 /*
-* Copyright 2018 Jens Willy Johannsen <jens@jwrobotics.com>, JW Robotics
+* Copyright 2018-2024 Jens Willy Johannsen <jens@jwrobotics.com>, JW Robotics
 *
 * Permission is hereby granted, free of charge, to any person obtaining a copy
 * of this software and associated documentation files (the "Software"), to deal
@@ -22,7 +22,7 @@
 * SBUS test application for reading raw values
 */
 
-#include <sbus_serial_driver.h>
+#include "sbus_serial_driver.h"
 #include <iostream>
 
 int main( int argc, char *argv[] )

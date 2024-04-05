@@ -1,0 +1,8 @@
+{
+    "files.associations": {
+        "stdexcept": "cpp",
+        "array": "cpp"
+    },
+    "cmake.configureOnOpen": false,
+    "editor.formatOnSave": true
+}

@@ -1,0 +1,42 @@
+launch:
+
+# Launch the main turtlesim node
+- node:
+    pkg: "turtlesim"
+    exec: "turtlesim_node"
+
+# Launch sbus_cmd_vel node and remap the output to the turtle1/cmd_vel topic
+- node:
+    pkg: "sbus_serial"
+    exec: "sbus_cmd_vel"
+    param:
+    -
+        name: "sbusMinValue"
+        value: 0
+    -
+        name: "sbusMaxValue"
+        value: 255
+    -
+        name: "forwardChannelIndx"
+        value: 2 # Throttle on a standard plane RC controller
+    -
+        name: "turnChannelIndx"
+        value: 0 # Aileron on a standard plane RC controller
+    -
+        name: "minSpeed"
+        value: 0.0
+    -
+        name: "maxSpeed"
+        value: 4.0
+    -
+        name: "minTurn"
+        value: -3.0
+    -
+        name: "maxTurn"
+        value: 3.0
+
+    remap:
+    -
+        from: "/output/sbus/cmd_vel"
+        to: "/turtle1/cmd_vel"
+

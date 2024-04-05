@@ -1,98 +1,201 @@
 /*
-* Copyright 2018 Jens Willy Johannsen <jens@jwrobotics.com>, JW Robotics
-*
-* Permission is hereby granted, free of charge, to any person obtaining a copy
-* of this software and associated documentation files (the "Software"), to deal
-* in the Software without restriction, including without limitation the rights
-* to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-* copies of the Software, and to permit persons to whom the Software is
-* furnished to do so, subject to the following conditions:
-*
-* The above copyright notice and this permission notice shall be included in
-* all copies or substantial portions of the Software.
-*
-* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-* IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-* FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-* AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-* LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-* OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
-* THE SOFTWARE.
-*
-* SBUS serial node
-*
-* Publishes:
-*	/sbus
-*/
+ * Copyright 2024 Jens Willy Johannsen <jens@jwrobotics.com>, JW Robotics
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in
+ * all copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+ * THE SOFTWARE.
+ *
+ * SBUS serial node
+ *
+ * Publishes:
+ *	/sbus
+ */
 
-#include "ros/ros.h"
-#include "std_msgs/String.h"
-#include <sbus_serial_driver.h>
-#include <sbus_serial/Sbus.h>
+#include "rclcpp/rclcpp.hpp"
+#include "sbus_serial_driver.h"
+#include "sbus_interfaces/msg/sbus.hpp"
 #include <algorithm>
 #include <boost/algorithm/clamp.hpp>
 
-int main( int argc, char **argv )
+class SbusSerial : public rclcpp::Node
 {
-	ros::init( argc, argv, "sbus_serial_node" );
-	ros::NodeHandle nh;
-	ros::NodeHandle param_nh( "~" );
+public:
+	SbusSerial() : Node("sbus_serial")
+	{
+		// Read/set parameters
+		this->declare_parameter("port", "/dev/tty11");
+		this->declare_parameter("refresh_rate_hz", 2);
+		this->declare_parameter("rxMinValue", 172);
+		this->declare_parameter("rxMaxValue", 1811);
+		this->declare_parameter("outMinValue", 0);
+		this->declare_parameter("outMaxValue", 255);
+		this->declare_parameter("silentOnFailsafe", false);
+		// Parameters for "enable channel". If channel number is -1, no enable channel is used.
+		this->declare_parameter("enableChannelNum", -1);
+		this->declare_parameter("enableChannelProportionalMin", -1.0);
+		this->declare_parameter("enableChannelProportionalMax", -1.0);
 
-	// Read/set parameters
-	std::string port;
-	int refresh_rate_hr;
-	int rxMinValue;
-	int rxMaxValue;
-	int outMinValue;
-	int outMaxValue;
-	bool silentOnFailsafe;
-	int enableChannelNum;
-	double enableChannelProportionalMin;
-	double enableChannelProportionalMax;
-	param_nh.param( "port", port, std::string( "/dev/ttyTHS2" ));     // /dev/ttyTHS2 is UART on J17
-	param_nh.param( "refresh_rate_hz", refresh_rate_hr, 5 );
-	param_nh.param( "rxMinValue", rxMinValue, 172 );
-	param_nh.param( "rxMaxValue", rxMaxValue, 1811 );
-	param_nh.param( "outMinValue", outMinValue, 0 );
-	param_nh.param( "outMaxValue", outMaxValue, 255 );
-	param_nh.param( "silentOnFailsafe", silentOnFailsafe, false );
-	// Parameters for "enable channel". If channel number is -1, no enable channel is used.
-	param_nh.param( "enableChannelNum", enableChannelNum, -1 );
-	param_nh.param( "enableChannelProportionalMin", enableChannelProportionalMin, -1.0 );
-	param_nh.param( "enableChannelProportionalMax", enableChannelProportionalMax, -1.0 );
+		int refresh_rate_hz; // Only used locally for scheduling the timer
+		this->get_parameter("port", port_);
+		this->get_parameter("refresh_rate_hz", refresh_rate_hz);
+		this->get_parameter("rxMinValue", rxMinValue_);
+		this->get_parameter("rxMaxValue", rxMaxValue_);
+		this->get_parameter("outMinValue", outMinValue_);
+		this->get_parameter("outMaxValue", outMaxValue_);
+		this->get_parameter("silentOnFailsafe", silentOnFailsafe_);
+		this->get_parameter("enableChannelNum", enableChannelNum_);
+		this->get_parameter("enableChannelProportionalMin", enableChannelProportionalMin_);
+		this->get_parameter("enableChannelProportionalMax", enableChannelProportionalMax_);
 
-	// Used for mapping raw values
-	float rawSpan = static_cast<float>(rxMaxValue-rxMinValue);
-	float outSpan = static_cast<float>(outMaxValue-outMinValue);
+		// Used for mapping raw values
+		rawSpan_ = static_cast<float>(rxMaxValue_ - rxMinValue_);
+		outSpan_ = static_cast<float>(outMaxValue_ - outMinValue_);
 
-	ros::Publisher pub = nh.advertise<sbus_serial::Sbus>( "sbus", 100 );
-	ros::Rate loop_rate( refresh_rate_hr );
+		// Create publisher. Topic is "/sbus" and data type is "sbus_serial::Sbus"
+		pub_ = this->create_publisher<sbus_interfaces::msg::Sbus>("sbus", 100);
+
+		// Initialize SBUS port
+		try
+		{
+			sbusPort_ = new sbus_serial::SBusSerialPort(port_, true);
+		}
+		catch (...)
+		{
+			// TODO: add error message in exception and report
+			RCLCPP_ERROR(this->get_logger(), "Unable to initalize SBUS port");
+			throw; // Re-throw exception
+		}
+
+		// Set callback (auto-capture by reference, we need to initialize the timestamp only)
+		sbusMsg_ = sbus_interfaces::msg::Sbus();
+		auto now = this->get_clock()->now(); // Get current time from the node's clock. Source must be this->getClock() in order to compare when we receive new messages
+		sbusMsg_.header.stamp = now;
+		lastPublishedTimestamp_ = now; // Set to same as sbusMsg_.header.stamp so we can see when a new sample is available
+		auto callback = [&](const sbus_serial::SBusMsg receivedSbusMsg)
+		{
+			// Note: sbus_serial::SBusMsg is not the same as sbus_interfaces::msg::Sbus
+			// First check if we should be silent on failsafe and failsafe is set. If so, do nothing
+			if (silentOnFailsafe_ && receivedSbusMsg.failsafe)
+				return;
+
+			// Next check if we have an "enable channel" specified. If so, return immediately if the value of the specified channel is outside of the specified min/max
+			if (enableChannelNum_ >= 1 && enableChannelNum_ <= 16)
+			{
+				double enableChannelProportionalValue = (receivedSbusMsg.channels[enableChannelNum_ - 1] - rxMinValue_) / rawSpan_;
+				if (enableChannelProportionalValue < enableChannelProportionalMin_ || enableChannelProportionalValue > enableChannelProportionalMax_)
+					return;
+			}
+
+			sbusMsg_.header.stamp = this->get_clock()->now();
+			sbusMsg_.frame_lost = receivedSbusMsg.frame_lost;
+			sbusMsg_.failsafe = receivedSbusMsg.failsafe;
+
+			// Assign raw channels
+			std::transform(receivedSbusMsg.channels.begin(), receivedSbusMsg.channels.end(), sbusMsg_.raw_channels.begin(), [&](uint16_t rawChannel)
+						   {
+							   return boost::algorithm::clamp(rawChannel, rxMinValue_, rxMaxValue_); // Clamp to min/max raw values
+						   });
+
+			// Map to min/max values
+			std::transform(receivedSbusMsg.channels.begin(), receivedSbusMsg.channels.end(), sbusMsg_.mapped_channels.begin(), [&](uint16_t rawChannel)
+						   {
+							   int16_t mappedValue = (rawChannel - rxMinValue_) / rawSpan_ * outSpan_ + outMinValue_;
+							   return boost::algorithm::clamp(mappedValue, outMinValue_, outMaxValue_); // Clamp to min/max output values
+						   });
+		};
+		sbusPort_->setCallback(callback);
+
+		// Schedule timer for periodic publishing
+		timer_ = this->create_wall_timer(std::chrono::milliseconds(1000 / refresh_rate_hz),
+										 std::bind(&SbusSerial::timerCallback, this));
+
+		RCLCPP_INFO(this->get_logger(), "SBUS node started, publisher created, timer scheduled...");
+	}
+
+private:
+	rclcpp::Publisher<sbus_interfaces::msg::Sbus>::SharedPtr pub_;
+	sbus_serial::SBusSerialPort *sbusPort_;
+	sbus_interfaces::msg::Sbus sbusMsg_;
+	std::string port_;
+	int rxMinValue_;
+	int rxMaxValue_;
+	int outMinValue_;
+	int outMaxValue_;
+	bool silentOnFailsafe_;
+	int enableChannelNum_;
+	double enableChannelProportionalMin_;
+	double enableChannelProportionalMax_;
+	float rawSpan_;
+	float outSpan_;
+	rclcpp::TimerBase::SharedPtr timer_; // Periodic timer for publishing at defined rate
+	rclcpp::Time lastPublishedTimestamp_;
+
+	void timerCallback()
+	{
+		// Only publish if we have a new sample
+		if (lastPublishedTimestamp_ != sbusMsg_.header.stamp)
+		{
+			pub_->publish(sbusMsg_);
+			lastPublishedTimestamp_ = sbusMsg_.header.stamp;
+		}
+	}
+};
+
+int main(int argc, char **argv)
+{
+	rclcpp::init(argc, argv);
+	auto node = std::make_shared<SbusSerial>();
+	rclcpp::spin(node);
+	rclcpp::shutdown();
+	return 0;
+
+	// HERE: create node, set parameters, create publisher, create callback, create sbus port, set callback, loop
+	/*
+
 
 	// Initialize SBUS port (using pointer to have only the initialization in the try-catch block)
 	sbus_serial::SBusSerialPort *sbusPort;
-	try {
-		sbusPort = new sbus_serial::SBusSerialPort( port, true );
+	try
+	{
+		sbusPort = new sbus_serial::SBusSerialPort(port, true);
 	}
-	catch( ... ) {
+	catch (...)
+	{
 		// TODO: add error message in exception and report
-		ROS_ERROR( "Unable to initalize SBUS port" );
+		ROS_ERROR("Unable to initalize SBUS port");
 		return 1;
 	}
 
 	// Create Sbus message instance and set invariant properties. Other properties will be set in the callback lambda
 	sbus_serial::Sbus sbus;
-	sbus.header.stamp = ros::Time( 0 );
+	sbus.header.stamp = ros::Time(0);
 
 	// Callback (auto-capture by reference)
-	auto callback = [&]( const sbus_serial::SBusMsg sbusMsg ) {
+	auto callback = [&](const sbus_serial::SBusMsg sbusMsg)
+	{
 		// First check if we should be silent on failsafe and failsafe is set. If so, do nothing
-		if( silentOnFailsafe && sbusMsg.failsafe )
+		if (silentOnFailsafe && sbusMsg.failsafe)
 			return;
 
 		// Next check if we have an "enable channel" specified. If so, return immediately if the value of the specified channel is outside of the specified min/max
-		if( enableChannelNum >= 1 && enableChannelNum <= 16 ) {
-			double enableChannelProportionalValue = (sbusMsg.channels[ enableChannelNum-1 ] - rxMinValue) / rawSpan;
-			if( enableChannelProportionalValue < enableChannelProportionalMin || enableChannelProportionalValue > enableChannelProportionalMax )
+		if (enableChannelNum >= 1 && enableChannelNum <= 16)
+		{
+			double enableChannelProportionalValue = (sbusMsg.channels[enableChannelNum - 1] - rxMinValue) / rawSpan;
+			if (enableChannelProportionalValue < enableChannelProportionalMin || enableChannelProportionalValue > enableChannelProportionalMax)
 				return;
 		}
 
@@ -101,26 +204,29 @@ int main( int argc, char **argv )
 		sbus.failsafe = sbusMsg.failsafe;
 
 		// Assign raw channels
-		std::transform( sbusMsg.channels.begin(), sbusMsg.channels.end(), sbus.rawChannels.begin(), [&]( uint16_t rawChannel ) {
-					return boost::algorithm::clamp( rawChannel, rxMinValue, rxMaxValue );   // Clamp to min/max raw values
-				} );
+		std::transform(sbusMsg.channels.begin(), sbusMsg.channels.end(), sbus.rawChannels.begin(), [&](uint16_t rawChannel)
+					   {
+						   return boost::algorithm::clamp(rawChannel, rxMinValue, rxMaxValue); // Clamp to min/max raw values
+					   });
 
 		// Map to min/max values
-		std::transform( sbusMsg.channels.begin(), sbusMsg.channels.end(), sbus.mappedChannels.begin(), [&]( uint16_t rawChannel ) {
-					int16_t mappedValue = (rawChannel - rxMinValue) / rawSpan * outSpan + outMinValue;
-					return boost::algorithm::clamp( mappedValue, outMinValue, outMaxValue );        // Clamp to min/max output values
-				} );
+		std::transform(sbusMsg.channels.begin(), sbusMsg.channels.end(), sbus.mappedChannels.begin(), [&](uint16_t rawChannel)
+					   {
+						   int16_t mappedValue = (rawChannel - rxMinValue) / rawSpan * outSpan + outMinValue;
+						   return boost::algorithm::clamp(mappedValue, outMinValue, outMaxValue); // Clamp to min/max output values
+					   });
 	};
-	sbusPort->setCallback( callback );
+	sbusPort->setCallback(callback);
 
-	ROS_INFO( "SBUS node started..." );
+	ROS_INFO("SBUS node started...");
 
-	ros::Time lastPublishedTimestamp( 0 );
-	while( ros::ok())
+	ros::Time lastPublishedTimestamp(0);
+	while (ros::ok())
 	{
 		// Only publish if we have a new sample
-		if( lastPublishedTimestamp != sbus.header.stamp ) {
-			pub.publish( sbus );
+		if (lastPublishedTimestamp != sbus.header.stamp)
+		{
+			pub.publish(sbus);
 			lastPublishedTimestamp = sbus.header.stamp;
 		}
 
@@ -128,6 +234,7 @@ int main( int argc, char **argv )
 		loop_rate.sleep();
 	}
 
-	delete sbusPort;        // Cleanup
+	delete sbusPort; // Cleanup
 	return 0;
+		*/
 }
