@@ -1,5 +1,5 @@
 /*
-* Copyright 2018 Jens Willy Johannsen <jens@jwrobotics.com>, JW Robotics
+* Copyright 2018-2024 Jens Willy Johannsen <jens@jwrobotics.com>, JW Robotics
 *
 * Permission is hereby granted, free of charge, to any person obtaining a copy
 * of this software and associated documentation files (the "Software"), to deal
@@ -73,8 +73,8 @@ namespace sbus_serial
 
 		std::thread receiver_thread_;
 		std::atomic_bool receiver_thread_should_exit_;
-		SBusCallback callback_;
 		int serial_port_fd_;
+		SBusCallback callback_;
 	};
 
 } // namespace sbus_serial
