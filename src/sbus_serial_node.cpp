@@ -27,7 +27,7 @@
 
 #include "rclcpp/rclcpp.hpp"
 #include "sbus_serial_driver.h"
-#include "sbus_interfaces/msg/sbus.hpp"
+#include "sbus_serial/msg/sbus.hpp"
 #include <algorithm>
 #include <boost/algorithm/clamp.hpp>
 
@@ -66,7 +66,7 @@ public:
 		outSpan_ = static_cast<float>(outMaxValue_ - outMinValue_);
 
 		// Create publisher. Topic is "/sbus" and data type is "sbus_serial::Sbus"
-		pub_ = this->create_publisher<sbus_interfaces::msg::Sbus>("sbus", 100);
+		pub_ = this->create_publisher<sbus_serial::msg::Sbus>("sbus", 100);
 
 		// Initialize SBUS port
 		try
@@ -81,13 +81,13 @@ public:
 		}
 
 		// Set callback (auto-capture by reference, we need to initialize the timestamp only)
-		sbusMsg_ = sbus_interfaces::msg::Sbus();
+		sbusMsg_ = sbus_serial::msg::Sbus();
 		auto now = this->get_clock()->now(); // Get current time from the node's clock. Source must be this->getClock() in order to compare when we receive new messages
 		sbusMsg_.header.stamp = now;
 		lastPublishedTimestamp_ = now; // Set to same as sbusMsg_.header.stamp so we can see when a new sample is available
 		auto callback = [&](const sbus_serial::SBusMsg receivedSbusMsg)
 		{
-			// Note: sbus_serial::SBusMsg is not the same as sbus_interfaces::msg::Sbus
+			// Note: sbus_serial::SBusMsg is not the same as sbus_serial::msg::Sbus
 			// First check if we should be silent on failsafe and failsafe is set. If so, do nothing
 			if (silentOnFailsafe_ && receivedSbusMsg.failsafe)
 				return;
@@ -127,9 +127,9 @@ public:
 	}
 
 private:
-	rclcpp::Publisher<sbus_interfaces::msg::Sbus>::SharedPtr pub_;
+	rclcpp::Publisher<sbus_serial::msg::Sbus>::SharedPtr pub_;
 	sbus_serial::SBusSerialPort *sbusPort_;
-	sbus_interfaces::msg::Sbus sbusMsg_;
+	sbus_serial::msg::Sbus sbusMsg_;
 	std::string port_;
 	int rxMinValue_;
 	int rxMaxValue_;
@@ -162,79 +162,4 @@ int main(int argc, char **argv)
 	rclcpp::spin(node);
 	rclcpp::shutdown();
 	return 0;
-
-	// HERE: create node, set parameters, create publisher, create callback, create sbus port, set callback, loop
-	/*
-
-
-	// Initialize SBUS port (using pointer to have only the initialization in the try-catch block)
-	sbus_serial::SBusSerialPort *sbusPort;
-	try
-	{
-		sbusPort = new sbus_serial::SBusSerialPort(port, true);
-	}
-	catch (...)
-	{
-		// TODO: add error message in exception and report
-		ROS_ERROR("Unable to initalize SBUS port");
-		return 1;
-	}
-
-	// Create Sbus message instance and set invariant properties. Other properties will be set in the callback lambda
-	sbus_serial::Sbus sbus;
-	sbus.header.stamp = ros::Time(0);
-
-	// Callback (auto-capture by reference)
-	auto callback = [&](const sbus_serial::SBusMsg sbusMsg)
-	{
-		// First check if we should be silent on failsafe and failsafe is set. If so, do nothing
-		if (silentOnFailsafe && sbusMsg.failsafe)
-			return;
-
-		// Next check if we have an "enable channel" specified. If so, return immediately if the value of the specified channel is outside of the specified min/max
-		if (enableChannelNum >= 1 && enableChannelNum <= 16)
-		{
-			double enableChannelProportionalValue = (sbusMsg.channels[enableChannelNum - 1] - rxMinValue) / rawSpan;
-			if (enableChannelProportionalValue < enableChannelProportionalMin || enableChannelProportionalValue > enableChannelProportionalMax)
-				return;
-		}
-
-		sbus.header.stamp = ros::Time::now();
-		sbus.frame_lost = sbusMsg.frame_lost;
-		sbus.failsafe = sbusMsg.failsafe;
-
-		// Assign raw channels
-		std::transform(sbusMsg.channels.begin(), sbusMsg.channels.end(), sbus.rawChannels.begin(), [&](uint16_t rawChannel)
-					   {
-						   return boost::algorithm::clamp(rawChannel, rxMinValue, rxMaxValue); // Clamp to min/max raw values
-					   });
-
-		// Map to min/max values
-		std::transform(sbusMsg.channels.begin(), sbusMsg.channels.end(), sbus.mappedChannels.begin(), [&](uint16_t rawChannel)
-					   {
-						   int16_t mappedValue = (rawChannel - rxMinValue) / rawSpan * outSpan + outMinValue;
-						   return boost::algorithm::clamp(mappedValue, outMinValue, outMaxValue); // Clamp to min/max output values
-					   });
-	};
-	sbusPort->setCallback(callback);
-
-	ROS_INFO("SBUS node started...");
-
-	ros::Time lastPublishedTimestamp(0);
-	while (ros::ok())
-	{
-		// Only publish if we have a new sample
-		if (lastPublishedTimestamp != sbus.header.stamp)
-		{
-			pub.publish(sbus);
-			lastPublishedTimestamp = sbus.header.stamp;
-		}
-
-		ros::spinOnce();
-		loop_rate.sleep();
-	}
-
-	delete sbusPort; // Cleanup
-	return 0;
-		*/
 }

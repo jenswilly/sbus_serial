@@ -38,7 +38,7 @@
  */
 
 #include "rclcpp/rclcpp.hpp"
-#include "sbus_interfaces/msg/sbus.hpp"
+#include "sbus_serial/msg/sbus.hpp"
 #include "geometry_msgs/msg/twist.hpp"
 
 #define FORWARD_CHANNEL_INDX 1 // Channel 2 (elevator)
@@ -70,14 +70,14 @@ public:
 
 		sbusRange_ = sbusMaxValue_ - sbusMinValue_; // Calculate range once
 
-		sbus_sub_ = this->create_subscription<sbus_interfaces::msg::Sbus>("/sbus", 1, std::bind(&SbusCmdVel::sbusCallback, this, std::placeholders::_1));
+		sbus_sub_ = this->create_subscription<sbus_serial::msg::Sbus>("/sbus", 1, std::bind(&SbusCmdVel::sbusCallback, this, std::placeholders::_1));
 		cmd_vel_pub_ = this->create_publisher<geometry_msgs::msg::Twist>("/output/sbus/cmd_vel", 10);
 
 		RCLCPP_INFO(this->get_logger(), "%s started: min/max input = %d/%d, max speed = %.2f m/s, max turn rate = %.2f radians/s", this->get_name(), sbusMinValue_, sbusMaxValue_, maxSpeed_, maxTurn_);
 	}
 
 private:
-	rclcpp::Subscription<sbus_interfaces::msg::Sbus>::SharedPtr sbus_sub_;
+	rclcpp::Subscription<sbus_serial::msg::Sbus>::SharedPtr sbus_sub_;
 	rclcpp::Publisher<geometry_msgs::msg::Twist>::SharedPtr cmd_vel_pub_;
 
 	int sbusMinValue_;
@@ -90,7 +90,7 @@ private:
 	int forwardChannelIndx_;
 	int turnChannelIndx_;
 
-	void sbusCallback(const sbus_interfaces::msg::Sbus::SharedPtr msg)
+	void sbusCallback(const sbus_serial::msg::Sbus::SharedPtr msg)
 	{
 		double proportional;
 		geometry_msgs::msg::Twist twist;

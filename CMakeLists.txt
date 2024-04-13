@@ -17,29 +17,37 @@ find_package(ament_cmake REQUIRED)
 find_package(rclcpp REQUIRED)
 find_package(std_msgs REQUIRED)
 find_package(geometry_msgs REQUIRED)
-find_package(sbus_interfaces REQUIRED)
+set(dependencies "rclcpp" "std_msgs" "geometry_msgs")
 
-set(dependencies "rclcpp" "std_msgs" "geometry_msgs" "sbus_interfaces")
+# Generate the interfaces
+find_package(rosidl_default_generators REQUIRED)
+set(msg_files
+  "msg/Sbus.msg"
+  DEPENDENCIES std_msgs
+)
+rosidl_generate_interfaces(${PROJECT_NAME}
+  ${msg_files}
+)
+rosidl_get_typesupport_target(cpp_typesupport_target ${PROJECT_NAME} rosidl_typesupport_cpp)
+ament_export_dependencies(rosidl_default_runtime)
 
-# Add executable and link dependencies
-add_executable(sbus_serial src/sbus_serial_node.cpp src/sbus_serial_driver.cpp)
-ament_target_dependencies(sbus_serial ${dependencies})
 
-add_executable(sbus_test_publisher src/sbus_test_publisher.cpp)
-ament_target_dependencies(sbus_test_publisher ${dependencies})
+# sbus_serial_node: include the generated interfaces
+add_executable(sbus_serial_node src/sbus_serial_node.cpp src/sbus_serial_driver.cpp)
+ament_target_dependencies(sbus_serial_node ${dependencies})
+target_link_libraries(sbus_serial_node "${cpp_typesupport_target}")
 
-add_executable(sbus_cmd_vel src/sbus_cmd_vel_node.cpp)
-ament_target_dependencies(sbus_cmd_vel ${dependencies})
+# sbus_cmd_vel_node: include the generated interfaces
+add_executable(sbus_cmd_vel_node src/sbus_cmd_vel_node.cpp)
+ament_target_dependencies(sbus_cmd_vel_node ${dependencies})
+target_link_libraries(sbus_cmd_vel_node "${cpp_typesupport_target}")
 
 # Separate executable for the calibration
 add_executable(sbus_calibrate src/sbus_calibrate.cpp src/sbus_serial_driver.cpp)
 
 # Install executables in lib
 install(
-	TARGETS 
-		sbus_serial 
-		sbus_test_publisher
-		sbus_cmd_vel
+	TARGETS sbus_serial_node sbus_cmd_vel_node
 	DESTINATION lib/${PROJECT_NAME}
 )
 
