@@ -8,7 +8,7 @@ launch:
 # Launch sbus_cmd_vel node and remap the output to the turtle1/cmd_vel topic
 - node:
     pkg: "sbus_serial"
-    exec: "sbus_cmd_vel"
+    exec: "sbus_cmd_vel_node"
     param:
     -
         name: "sbusMinValue"
