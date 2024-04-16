@@ -1,0 +1,67 @@
+# Launch file for the Embla teleop nodes
+# NOTE: This launch file does NOT launch the Embla controller nodes.
+# 
+# Channel 1 (elevator) is used for forward/backward movement
+# Channel 0 (aileron) is used for turning
+#
+# Both fwd/back and turn output -1 to 1 values
+#
+# Default calibration values are used for the sbus_serial node
+
+launch:
+
+# Launch sbus_serial node
+- node:
+    pkg: "sbus_serial"
+    exec: "sbus_serial_node"
+    param:
+    -
+        name: "port"
+        value: "/dev/ttyS0"
+    -
+        name: "sbusMinValue"
+        value: 0
+    -
+        name: "sbusMaxValue"
+        value: 255
+    -
+        name: "numChannels"
+        value: 16
+
+# Launch sbus_cmd_vel node and remap the output to the /embla_base_controller/cmd_vel topic
+- node:
+    pkg: "sbus_serial"
+    exec: "sbus_cmd_vel_node"
+    param:
+    -
+        name: "sbusMinValue"
+        value: 0
+    -
+        name: "sbusMaxValue"
+        value: 255
+    -
+        name: "forwardChannelIndx"
+        value: 1 # Elevator on a standard plane RC controller
+    -
+        name: "turnChannelIndx"
+        value: 0 # Aileron on a standard plane RC controller
+    -
+        name: "minSpeed"
+        value: -1.0
+    -
+        name: "maxSpeed"
+        value: 1.0
+    -
+        name: "minTurn"
+        value: -1.0
+    -
+        name: "maxTurn"
+        value: 0.0
+    -
+        name: "useStamped"
+        value: true
+    remap:
+    -
+        from: "/output/sbus/cmd_vel"
+        to: "/embla_base_controller/cmd_vel"
+
