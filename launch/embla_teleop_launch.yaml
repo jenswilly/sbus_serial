@@ -56,7 +56,7 @@ launch:
         value: -1.0
     -
         name: "maxTurn"
-        value: 0.0
+        value: 1.0
     -
         name: "useStamped"
         value: true
