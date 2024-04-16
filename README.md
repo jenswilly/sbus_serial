@@ -11,7 +11,7 @@ The package contains the following executables:
 - `sbus_serial_node` containing:
   - `sbus_serial`: node reading SBUS data from a serial port and publishing `Sbus` data
 - `sbus_cmd_vel_node` containing:
-  - `sbus_cmd_vel`: node subscribing to the `/sbus` topic and publishing corresponding `Twist` message on the `/output/sbus/cmd_vel` topic. Use parameters and topic remapping as required. (See comments in sbus_cmd_vel_node.cpp for more info)
+  - `sbus_cmd_vel`: node subscribing to the `/sbus` topic and publishing corresponding `Twist` _or_ `TwistStamped` message on the `/output/sbus/cmd_vel` topic. Use parameters and topic remapping as required. (See comments in sbus_cmd_vel_node.cpp for more info)
 - `sbus_calibrate` (installed in the packages's `share` directory): stand-alone executable to calibrate data from the receiver (see details in the [Wiki](https://github.com/jenswilly/sbus_serial/wiki/ROS2)).
 
 The package also contains the following custom interfaces:

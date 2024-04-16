@@ -34,6 +34,9 @@ launch:
     -
         name: "maxTurn"
         value: 3.0
+    -
+        name: "useStamped"
+        value: false
 
     remap:
     -
