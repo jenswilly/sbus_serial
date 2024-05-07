@@ -19,14 +19,17 @@ launch:
         name: "port"
         value: "/dev/ttyS0"
     -
-        name: "sbusMinValue"
+        name: "outMinValue"
         value: 0
     -
-        name: "sbusMaxValue"
+        name: "outMaxValue"
         value: 255
     -
-        name: "numChannels"
-        value: 16
+        name: "refresh_rate_hz"
+        value: 10
+    -
+        name: "deadband"
+        value: 20
 
 # Launch sbus_cmd_vel node and remap the output to the /embla_base_controller/cmd_vel topic
 - node:

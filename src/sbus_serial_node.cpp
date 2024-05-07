@@ -44,10 +44,14 @@ public:
 		this->declare_parameter("outMinValue", 0);
 		this->declare_parameter("outMaxValue", 255);
 		this->declare_parameter("silentOnFailsafe", false);
+
 		// Parameters for "enable channel". If channel number is -1, no enable channel is used.
 		this->declare_parameter("enableChannelNum", -1);
 		this->declare_parameter("enableChannelProportionalMin", -1.0);
 		this->declare_parameter("enableChannelProportionalMax", -1.0);
+
+		// Deadband is in raw values and is both plus and minus around the midpoint and is used for all channels
+		this->declare_parameter("deadband", 0);
 
 		int refresh_rate_hz; // Only used locally for scheduling the timer
 		this->get_parameter("port", port_);
@@ -60,13 +64,14 @@ public:
 		this->get_parameter("enableChannelNum", enableChannelNum_);
 		this->get_parameter("enableChannelProportionalMin", enableChannelProportionalMin_);
 		this->get_parameter("enableChannelProportionalMax", enableChannelProportionalMax_);
+		this->get_parameter("deadband", deadband_);
 
 		// Used for mapping raw values
 		rawSpan_ = static_cast<float>(rxMaxValue_ - rxMinValue_);
 		outSpan_ = static_cast<float>(outMaxValue_ - outMinValue_);
 
 		// Create publisher. Topic is "/sbus" and data type is "sbus_serial::Sbus"
-		pub_ = this->create_publisher<sbus_serial::msg::Sbus>("sbus", 100);
+		pub_ = this->create_publisher<sbus_serial::msg::Sbus>("sbus", 10);
 
 		// Initialize SBUS port
 		try
@@ -113,6 +118,12 @@ public:
 			// Map to min/max values
 			std::transform(receivedSbusMsg.channels.begin(), receivedSbusMsg.channels.end(), sbusMsg_.mapped_channels.begin(), [&](uint16_t rawChannel)
 						   {
+							   // Set to center output if within deadband
+							   int16_t center = (rxMaxValue_ + rxMinValue_) / 2;
+							   bool inDeadband = rawChannel >= center - deadband_ && rawChannel <= center + deadband_;
+							   if (inDeadband)
+								   return (int16_t)(0.5 * outSpan_ + outMinValue_);
+
 							   int16_t mappedValue = (rawChannel - rxMinValue_) / rawSpan_ * outSpan_ + outMinValue_;
 							   return boost::algorithm::clamp(mappedValue, outMinValue_, outMaxValue_); // Clamp to min/max output values
 						   });
@@ -135,6 +146,7 @@ private:
 	int rxMaxValue_;
 	int outMinValue_;
 	int outMaxValue_;
+	int deadband_;
 	bool silentOnFailsafe_;
 	int enableChannelNum_;
 	double enableChannelProportionalMin_;
