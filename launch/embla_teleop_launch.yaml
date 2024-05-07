@@ -63,6 +63,9 @@ launch:
     -
         name: "useStamped"
         value: true
+    -
+        name: "deadband"
+        value: 0.01
     remap:
     -
         from: "/output/sbus/cmd_vel"

@@ -61,6 +61,7 @@ public:
 		this->declare_parameter("maxTurn", 1.0);
 		this->declare_parameter("useStamped", true); // Maximum turn rate in radians/sec for output Twist
 		this->declare_parameter("frameId", "");		 // frame_id for TwistStamped message
+		this->declare_parameter("deadband", 0.0);	 // Deadband is in received sbus values and is both plus and minus around the midpoint and is used for all channels
 
 		this->get_parameter("forwardChannelIndx", forwardChannelIndx_);
 		this->get_parameter("turnChannelIndx", turnChannelIndx_);
@@ -72,6 +73,7 @@ public:
 		this->get_parameter("maxTurn", maxTurn_);
 		this->get_parameter("useStamped", useStamped_);
 		this->get_parameter("frameId", frameId_);
+		this->get_parameter("deadband", deadband_);
 
 		sbusRange_ = sbusMaxValue_ - sbusMinValue_; // Calculate range once
 
@@ -98,6 +100,7 @@ private:
 	double maxSpeed_; // m/sec
 	double minTurn_;
 	double maxTurn_; // radians/sec
+	double deadband_;
 	int forwardChannelIndx_;
 	int turnChannelIndx_;
 	bool useStamped_;	  // If true, use TwistStamped message with timestamp
@@ -112,6 +115,12 @@ private:
 
 		proportional = static_cast<double>(msg->mapped_channels[turnChannelIndx_] - sbusMinValue_) / sbusRange_;
 		double turn = minTurn_ + (maxTurn_ - minTurn_) * proportional;
+
+		// Adjust for deadband
+		if (std::abs(fwdSpeed) < deadband_)
+			fwdSpeed = 0.0;
+		if (std::abs(turn) < deadband_)
+			turn = 0.0;
 
 		geometry_msgs::msg::Twist twist;
 		twist.linear.x = fwdSpeed;
